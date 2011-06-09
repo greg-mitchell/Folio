@@ -47,7 +47,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Card.cs" />
-    <Compile Include="CardCollectionBindingList.cs" />
+    <Compile Include="SortableBindingList.cs" />
+    <Compile Include="Cost.cs" />
     <Compile Include="HTML\AttributeList.cs" />
     <Compile Include="HTML\Attributes.cs" />
     <Compile Include="Filter.cs" />
@@ -84,6 +85,7 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <Compile Include="PropertyComparer.cs" />
     <Compile Include="Rulings.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

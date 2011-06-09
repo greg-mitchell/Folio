@@ -153,7 +153,7 @@ namespace Folio
 		/// A <see cref="StreamReader"/>
 		/// </param>
 		/// <returns>
-		/// A <see cref="List<CardRuling>"/>
+		/// A List of CardRulings
 		/// </returns>
 		private static List<CardRuling> ParseRulings(StreamReader inputStream)
 		{
@@ -276,15 +276,6 @@ namespace Folio
 		
 	}
 
-    public class CardRuling : Card
-    {
-        [XmlArrayItem("RulesLine")]
-        public List<string> RulesText { get; set; }
-
-        public CardRuling()
-        {
-            RulesText = new List<string>();
-        }
-    }
+    
 }
 

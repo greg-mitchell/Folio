@@ -14,13 +14,33 @@ namespace Folio
 {
     public partial class MainView : Form
     {
-        int BLUR_DELAY = 500;     // time between last keypress and a call to update the imagebox
-		int AUTOCOMPLETE_SUGGESTIONS = 5;
-        Filter filter;
-        Timer blurTimer;
-        BindingList<Card> viewCardList;
-        bool needToSave = false;
+        #region Fields and Settings
+        //settings
+        /// <summary>Time between last keypress and a call to update the imagebox</summary>
+        int BLUR_DELAY = 500;
 
+        /// <summary>Number of autocomplete suggestions to display</summary>
+		int AUTOCOMPLETE_SUGGESTIONS = 5;
+
+        // Private fields
+        /// <summary>Filters the displayed cards</summary>
+        Filter filter;
+
+        /// <summary>Timer for pausing before making picture updates</summary>
+        Timer blurTimer;
+
+        /// <summary>List for storing the displayed cards and notifying/responding to changes</summary>
+        SortableBindingList<CardCollectionCard> viewCardList;
+
+        bool needToSave = false;
+        string currentFilePath;
+
+        // fields to assist with sorting
+        DataGridViewColumn sortedColumn;
+        SortOrder sortDirection = SortOrder.None;
+        #endregion
+
+        #region Constructors, Initializations, and Closing
         public MainView()
         {
             InitializeComponent();
@@ -31,10 +51,12 @@ namespace Folio
 
             toolStripStatusLabel1.Text = "";
 
-            viewCardList = new BindingList<Card>();
+            viewCardList = new SortableBindingList<CardCollectionCard>();
             dataGridView1.DataSource = viewCardList;
-            dataGridView1.RowsAdded += new DataGridViewRowsAddedEventHandler(dataGridView1_RowsAdded);
             dataGridView1.MouseUp += new MouseEventHandler(dataGridView1_MouseUp);
+            dataGridView1.CellValueChanged += new DataGridViewCellEventHandler(dataGridView1_CellValueChanged);
+            dataGridView1.RowsAdded += new DataGridViewRowsAddedEventHandler(dataGridView1_RowsAdded);
+            dataGridView1.DataError +=new DataGridViewDataErrorEventHandler(dataGridView1_DataError);
             InitializeDataGridView();
 			
 			checkBoxW.CheckedChanged += new EventHandler(FilterCheckbox_CheckedChanged);
@@ -44,6 +66,10 @@ namespace Folio
 			checkBoxG.CheckedChanged += new EventHandler(FilterCheckbox_CheckedChanged);
 			
             comboBox1.TextChanged += textBox1_TextChanged;
+
+            toolStripStatusLabel1.Text = "Loading card base";
+            Rulings.LoadCache();
+            toolStripStatusLabel1.Text = "Card base loaded";
 
             // application settings
             this.AUTOCOMPLETE_SUGGESTIONS = Properties.Settings.Default.AutocompleteSuggestions;
@@ -82,37 +108,68 @@ namespace Folio
                 dataGridView1.AutoGenerateColumns = false;
                 dataGridView1.Columns.Clear();
 
-
-                //string[] columns = new string[] { "Name", "Cost", "Color", "Type", "Set", "Condition" };
-                //dataGridView1.Columns.Add(new DataGridViewColumn() { HeaderText = "Name", DataPropertyName = "Name", ValueType=typeof(String) });
-                //dataGridView1.Columns.Add(new DataGridViewColumn() { HeaderText = "Cost", DataPropertyName = "Cost" , ValueType=typeof(Cost)});
-                //dataGridView1.Columns.Add(new DataGridViewColumn() { HeaderText = "Color", DataPropertyName = "Color", ValueType=typeof(CardColors)});
-                //dataGridView1.Columns.Add(new DataGridViewColumn() { HeaderText = "Type", DataPropertyName = "Type", ValueType=typeof(CardTypes)});
-                //dataGridView1.Columns.Add(new DataGridViewColumn() { HeaderText = "Set", DataPropertyName = "Set", ValueType=typeof(String) }); 
-                //dataGridView1.Columns.Add(new DataGridViewColumn() { HeaderText = "Condition", DataPropertyName = "Condition", ValueType=typeof(Condition) });
-
-                string[] columns = new string[] { "Name", "Cost", "Color", "Type", "Set", "Condition" };
+                string[] columns = new string[] { "Quantity", "Name", "Cost", "Color", "Type", "Set", "Condition" };
                 Properties.Settings.Default.DisplayColumns = "Name,Cost,Color,Type,Set,Condition";
 
                 DataGridViewCell cellTemplate = new DataGridViewTextBoxCell();
 
-                dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "Name", DataPropertyName = "Name" , SortMode=DataGridViewColumnSortMode.Programmatic});
+                dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "#", DataPropertyName = "Quantity", SortMode = DataGridViewColumnSortMode.Programmatic });
+                dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "Name", DataPropertyName = "Name", SortMode = DataGridViewColumnSortMode.Programmatic });
                 dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "Cost", DataPropertyName = "Cost" , SortMode = DataGridViewColumnSortMode.Programmatic });
                 dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "Color", DataPropertyName = "Color", SortMode = DataGridViewColumnSortMode.Programmatic });
                 dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "Type", DataPropertyName = "Type" , SortMode=DataGridViewColumnSortMode.Programmatic });
-                dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "Set", DataPropertyName = "Set", SortMode = DataGridViewColumnSortMode.Programmatic });
-
-                DataGridViewComboBoxColumn comboBoxCol = new DataGridViewComboBoxColumn() { HeaderText = "Condition", DataPropertyName = "Condition" };
+                                
+                DataGridViewComboBoxColumn comboBoxCol = new DataGridViewComboBoxColumn() { HeaderText = "Condition", DataPropertyName = "Condition", SortMode=DataGridViewColumnSortMode.NotSortable };
                 Array vals = Enum.GetValues(typeof(Condition));
-                for(int i=1;i<vals.Length;i++) comboBoxCol.Items.Add(vals.GetValue(i));
+                for(int i=0;i<vals.Length;i++) comboBoxCol.Items.Add(vals.GetValue(i));
                 dataGridView1.Columns.Add(comboBoxCol);
 
+                dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "Set", DataPropertyName = "Set", SortMode = DataGridViewColumnSortMode.Programmatic });
+                dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "Notes", DataPropertyName = "Notes", SortMode = DataGridViewColumnSortMode.NotSortable });
             }
             columnsContextMenu.Items.Clear();
             // parse settings for columns
-            
+
+            needToSave = false;
         }
 
+        private void MainView_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (needToSave)
+            {
+                DialogResult res = MessageBox.Show("Do you want to save changes?", "Folio", MessageBoxButtons.YesNoCancel);
+                if (res == System.Windows.Forms.DialogResult.Yes)
+                {
+                    if (String.IsNullOrEmpty(currentFilePath))
+                    {
+                        if (saveFileDialog1.ShowDialog() == System.Windows.Forms.DialogResult.OK
+                            && File.Exists(saveFileDialog1.FileName))
+                        {
+                            SaveAndUnlock(saveFileDialog1.FileName);
+                        }
+                        else
+                        {
+                            MessageBox.Show("File name or path invalid!");
+                            e.Cancel = true;
+                        }
+                    }
+                    else
+                    {
+                        if (File.Exists(currentFilePath))
+                        {
+                            SaveAndUnlock(currentFilePath);
+                        }
+                    }
+                }
+                else if (res == System.Windows.Forms.DialogResult.Cancel)
+                {
+                    e.Cancel = true;
+                }
+            }
+        }
+        #endregion
+
+        #region DataGridView Events and Sorting
         void dataGridView1_MouseUp(object sender, MouseEventArgs e)
         {
             if (e.Button == System.Windows.Forms.MouseButtons.Left)
@@ -121,7 +178,6 @@ namespace Folio
                 if (hitTest.Type == DataGridViewHitTestType.ColumnHeader)
                 {
                     DataGridViewColumn hitCol = dataGridView1.Columns[hitTest.ColumnIndex];
-                    //dataGridView1.Sort(hitCol, (sortedAscending ? ListSortDirection.Ascending : ListSortDirection.Descending));
                     SortColumn(hitCol);
                 }
             }
@@ -140,17 +196,61 @@ namespace Folio
             }
         }
 
+        void dataGridView1_SelectionChanged(object sender, EventArgs e)
+        {
+            if (dataGridView1.SelectedRows.Count > 0 
+                && dataGridView1.SelectedRows[0].Cells.Count > 0 
+                && dataGridView1.SelectedRows[0].Cells[0].Value != null)
+            {
+
+                toolStripStatusLabel1.Text = "Fetching image";
+                Filter newFilter = new Filter() { CardName = dataGridView1.SelectedRows[0].Cells[1].Value.ToString() };
+                ImageGrabber.GetImageUrl(newFilter, UpdatePictureBox_Completed);
+            }
+            else if (dataGridView1.SelectedCells.Count == 1 
+                && dataGridView1.SelectedCells[0].Value != null)
+            {
+                toolStripStatusLabel1.Text = "Fetching image";
+                Filter newFilter = new Filter() { CardName = dataGridView1.SelectedCells[0].Value.ToString() };
+                ImageGrabber.GetImageUrl(newFilter, UpdatePictureBox_Completed);
+            }
+        }
+
+        void dataGridView1_RowsAdded(object sender, DataGridViewRowsAddedEventArgs e)
+        {
+            needToSave = true;
+        }
+
+        void dataGridView1_CellValueChanged(object sender, DataGridViewCellEventArgs e)
+        {
+            needToSave = true;
+        }
+
+        void dataGridView1_RowEnter(object sender, DataGridViewCellEventArgs e)
+        {
+            toolStripStatusLabel1.Text = "Fetching image";
+        }
+
+        void dataGridView1_DataError(object sender, DataGridViewDataErrorEventArgs e)
+        {
+           string msg =
+      string.Format(
+         "DataError occurred:\n{0}\n{1}\nDataErrorContext: {2}",
+         e.Exception.GetType().ToString(), e.Exception.Message,
+         e.Context);
+            MessageBox.Show(msg);
+        }
+
         private void SortColumn(DataGridViewColumn columnToSort)
         {
-            DataGridViewColumn oldColumn = dataGridView1.SortedColumn;
             ListSortDirection direction;
 
             // If oldColumn is null, then the DataGridView is not currently sorted.
-            if (oldColumn != null)
+            if (sortedColumn != null)
             {
                 // Sort the same column again, reversing the SortOrder.
-                if (oldColumn == columnToSort &&
-                    dataGridView1.SortOrder == SortOrder.Ascending)
+                if (sortedColumn == columnToSort &&
+                    sortDirection == SortOrder.Ascending)
                 {
                     direction = ListSortDirection.Descending;
                 }
@@ -158,7 +258,7 @@ namespace Folio
                 {
                     // Sort a new column and remove the old SortGlyph.
                     direction = ListSortDirection.Ascending;
-                    oldColumn.HeaderCell.SortGlyphDirection = SortOrder.None;
+                    sortedColumn.HeaderCell.SortGlyphDirection = SortOrder.None;
                 }
             }
             else
@@ -173,76 +273,19 @@ namespace Folio
                     "Error: Invalid Selection", MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
             }
-            else
+            else if (columnToSort.SortMode != DataGridViewColumnSortMode.NotSortable)
             {
+                sortedColumn = columnToSort;
+                sortDirection = (direction == ListSortDirection.Ascending) ? SortOrder.Ascending : SortOrder.Descending;
                 dataGridView1.Sort(columnToSort, direction);
                 columnToSort.HeaderCell.SortGlyphDirection =
                     direction == ListSortDirection.Ascending ?
                     SortOrder.Ascending : SortOrder.Descending;
             }
         }
+        #endregion
 
-        void dataGridView1_RowsAdded(object sender, DataGridViewRowsAddedEventArgs e)
-        {
-            
-        }
-
-        void dataGridView1_SelectionChanged(object sender, EventArgs e)
-        {
-            if (dataGridView1.SelectedRows.Count > 0 
-                && dataGridView1.SelectedRows[0].Cells.Count > 0 
-                && dataGridView1.SelectedRows[0].Cells[0].Value != null)
-            {
-
-                toolStripStatusLabel1.Text = "Fetching image";
-                Filter newFilter = new Filter() { CardName = dataGridView1.SelectedRows[0].Cells[0].Value.ToString() };
-                ImageGrabber.GetImageUrl(newFilter, UpdatePictureBox_Completed);
-            }
-            else if (dataGridView1.SelectedCells.Count == 1 
-                && dataGridView1.SelectedCells[0].Value != null)
-            {
-                toolStripStatusLabel1.Text = "Fetching image";
-                Filter newFilter = new Filter() { CardName = dataGridView1.SelectedCells[0].Value.ToString() };
-                ImageGrabber.GetImageUrl(newFilter, UpdatePictureBox_Completed);
-            }
-        }
-
-        void dataGridView1_RowEnter(object sender, DataGridViewCellEventArgs e)
-        {
-            toolStripStatusLabel1.Text = "Fetching image";
-        }
-
-        void dataGridView1_DataError(object sender, DataGridViewDataErrorEventArgs anError)
-        {
-            MessageBox.Show("Error happened " + anError.Context.ToString());
-
-            if (anError.Context == DataGridViewDataErrorContexts.Commit)
-            {
-                MessageBox.Show("Commit error");
-            }
-            if (anError.Context == DataGridViewDataErrorContexts.CurrentCellChange)
-            {
-                MessageBox.Show("Cell change");
-            }
-            if (anError.Context == DataGridViewDataErrorContexts.Parsing)
-            {
-                MessageBox.Show("parsing error");
-            }
-            if (anError.Context == DataGridViewDataErrorContexts.LeaveControl)
-            {
-                MessageBox.Show("leave control error");
-            }
-
-            if ((anError.Exception) is ConstraintException)
-            {
-                DataGridView view = (DataGridView)sender;
-                view.Rows[anError.RowIndex].ErrorText = "an error";
-                view.Rows[anError.RowIndex].Cells[anError.ColumnIndex].ErrorText = "an error";
-
-                anError.ThrowException = false;
-            }
-        }
-
+        #region Textbox Events, Filter Events
         private void textBox1_TextChanged(object sender, EventArgs e)
         {
             blurTimer.Stop();
@@ -257,8 +300,107 @@ namespace Folio
 			FetchImage();
             //Rulings.GetCardRulings(filter, new RunWorkerCompletedEventHandler(AutocompleteMatching_Completed));
         }
-		
-		private void FetchImage() 
+
+        private void AddButton_Click(object sender, EventArgs e)
+        {
+            if (viewCardList == null)
+            {
+                MessageBox.Show("You must create a new view or open a view before editing!");
+                return;
+            }
+
+            Rulings.GetCardRulings(new Filter() { CardName = comboBox1.Text }, AddCard_Completed);
+        }
+
+        private void comboBox1_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                if (viewCardList == null)
+                {
+                    MessageBox.Show("You must create a new view or open a view before editing!");
+                    return;
+                }
+
+                Rulings.GetCardRulings(new Filter() { CardName = comboBox1.Text }, AddCard_Completed);
+            }
+        }
+
+        private void FilterCheckbox_CheckedChanged(object sender, EventArgs e)
+        {
+            filter.W = this.checkBoxW.Checked;
+            filter.U = this.checkBoxU.Checked;
+            filter.B = this.checkBoxB.Checked;
+            filter.R = this.checkBoxR.Checked;
+            filter.G = this.checkBoxG.Checked;
+
+            FetchImage();
+        }
+        #endregion
+
+        #region ToolStripMenuItem Events
+        private void importToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void openToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            openFileDialog1.Filter = "XML Files (*.xml)|*.xml|All Files (*.*)|*.*";
+            if (openFileDialog1.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                if (File.Exists(openFileDialog1.FileName))
+                {
+                    OpenFile(openFileDialog1.FileName);
+                    
+                }
+                else
+                    MessageBox.Show("File not found!");
+            }
+        }
+
+        private void saveAsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            saveFileDialog1.Filter = "XML Files (*.xml)|*.xml|All Files (*.*)|*.*";
+            if (saveFileDialog1.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                SaveAt(saveFileDialog1.FileName);
+            }
+        }
+
+        private void newToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            DialogResult res = System.Windows.Forms.DialogResult.Yes;
+            if (needToSave)
+            {
+                res = MessageBox.Show("Do you want to save changes?", "Folio", MessageBoxButtons.YesNoCancel);
+                if (res == System.Windows.Forms.DialogResult.Yes)
+                {
+                    if (String.IsNullOrEmpty(currentFilePath) || !File.Exists(currentFilePath))
+                    {
+                        if (saveFileDialog1.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                        {
+                            SaveAndUnlock(saveFileDialog1.FileName);
+                        }
+                    }
+                    else
+                    {
+                        SaveAndUnlock(currentFilePath);
+                    }
+                }
+            }
+
+            if (res != System.Windows.Forms.DialogResult.Cancel)
+            {
+                viewCardList = new SortableBindingList<CardCollectionCard>();
+                dataGridView1.DataSource = viewCardList;
+                currentFilePath = "";
+            }
+        }
+        #endregion
+
+        #region Asynchronous Methods
+        private void FetchImage() 
 		{
 			toolStripStatusLabel1.Text = "Fetching image\t";
             filter.CardName = comboBox1.Text;
@@ -302,117 +444,69 @@ namespace Folio
             comboBox1.Items.AddRange(suggestions);
             comboBox1.SelectedIndex = selind;
             foreach (string suggestion in suggestions) Console.WriteLine("Suggesting: {0}", suggestion);
-		}
-		
-		private void FilterCheckbox_CheckedChanged(object sender, EventArgs e) 
-		{
-			filter.W = this.checkBoxW.Checked;
-			filter.U = this.checkBoxU.Checked;
-			filter.B = this.checkBoxB.Checked;
-			filter.R = this.checkBoxR.Checked;
-			filter.G = this.checkBoxG.Checked;
-			
-			FetchImage();	
-		}
-		
-
-        private void importToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void openToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            openFileDialog1.Filter = "XML Files (*.xml)|*.xml|All Files (*.*)|*.*";
-            if (openFileDialog1.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-            {
-                if (File.Exists(openFileDialog1.FileName))
-                {
-                    using (FileStream dataStore = new FileStream(openFileDialog1.FileName, FileMode.Open, FileAccess.ReadWrite))
-                    {
-                        dataStore.Lock(0, dataStore.Length);
-                        OpenDataStore();
-                    }
-                }
-                else
-                    MessageBox.Show("File not found!");
-            }
-        }
-
-        private void OpenDataStore()
-        {
-            
-        }
-
-        private void MainView_FormClosing(object sender, FormClosingEventArgs e)
-        {
-        }
-
-        private void saveAsToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            
-
-            saveFileDialog1.Filter = "XML Files (*.xml)|*.xml|All Files (*.*)|*.*";
-            if (saveFileDialog1.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-            {
-                XmlSerializer serializer = new XmlSerializer(typeof(Card[]));
-                using (StreamWriter sw = new StreamWriter(saveFileDialog1.FileName))
-                {
-                    serializer.Serialize(sw, viewCardList.ToArray());
-                }
-            }
-        }
-
-        private void newToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            viewCardList = new BindingList<Card>();
-            dataGridView1.DataSource = viewCardList;
-        }
-
-        private void AddButton_Click(object sender, EventArgs e)
-        {
-            if (viewCardList == null)
-            {
-                MessageBox.Show("You must create a new view or open a view before editing!");
-                return;
-            }
-			
-			Rulings.GetCardRulings(new Filter() { CardName = comboBox1.Text }, AddCard_Completed);
-        }
+		}       
+        
 
         private void AddCard_Completed(object obj, RunWorkerCompletedEventArgs e)
         {
             IEnumerable<CardRuling> matches = (IEnumerable<CardRuling>)e.Result;
             if (matches != null && matches.Count() > 0)
-                viewCardList.Add((Card)matches.First());
+                viewCardList.Add((CardCollectionCard)matches.First());
         }
+        #endregion
 
-        private void comboBox1_KeyDown(object sender, KeyEventArgs e)
+        private void SaveAt(string path)
         {
-            if (e.KeyCode == Keys.Enter)
+            XmlSerializer serializer = new XmlSerializer(typeof(List<CardCollectionCard>));
+            if (File.Exists(path))
             {
-                if (viewCardList == null)
+                using (FileStream fs = new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write))
                 {
-                    MessageBox.Show("You must create a new view or open a view before editing!");
-                    return;
+                    serializer.Serialize(fs, viewCardList.ToList());
+                    LockDataStore(fs);
                 }
-
-                Rulings.GetCardRulings(new Filter() { CardName = comboBox1.Text }, AddCard_Completed);
+            }
+            else
+            {
+                throw new ArgumentException("The path must be valid!"); 
             }
         }
 
-        /*
-        private DataTable CreateTable(string p)
+        private void OpenFile(string path)
         {
-            DataTable table = new DataTable(p);
-            DataColumn column = new DataColumn("Name", typeof(string));
-            column.AllowDBNull = false;
-            column.MaxLength = 255;
-            table.Columns.Add(column);
-
-            column = new DataColumn("Cost", typeof(Cost));
-            column.AllowDBNull = true;
+            using (FileStream fs = new FileStream(openFileDialog1.FileName, FileMode.Open, FileAccess.ReadWrite))
+            {
+                XmlSerializer serializer = new XmlSerializer(typeof(List<CardCollectionCard>));
+                viewCardList = new SortableBindingList<CardCollectionCard>(
+                    (CardCollectionCard[])serializer.Deserialize(fs));
+            }
         }
-         * */
+
+        private void SaveAndUnlock(string path)
+        {
+            if (File.Exists(path))
+            {
+                using (FileStream fs = new FileStream(saveFileDialog1.FileName, FileMode.Open, FileAccess.Write))
+                {
+                    XmlSerializer seralizer = new XmlSerializer(typeof(List<CardCollectionCard>));
+                    seralizer.Serialize(fs, viewCardList.ToList());
+                    UnlockDataStore(fs);
+                }
+            }
+            else
+            {
+                throw new ArgumentException("The path must be valid!");
+            }
+        }
+
+        private void LockDataStore(FileStream fs)
+        {
+            fs.Lock(0, fs.Length);
+        }
+
+        private void UnlockDataStore(FileStream fs)
+        {
+            fs.Unlock(0, fs.Length);
+        }
     }
 }

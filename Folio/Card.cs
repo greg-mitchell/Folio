@@ -43,7 +43,6 @@ namespace Folio
 	/// </summary>
 	public enum Condition
 	{
-        Default,
 		/// <summary>Near-mint / mint</summary>
 		NM,
 		/// <summary>Slightly played</summary>
@@ -55,124 +54,12 @@ namespace Folio
 	}
 
 	/// <summary>
-	/// Represents a mana cost, as on a card.  Also contains methods for parsing and
-	 /// interacting with costs 
-	/// </summary>
-    [Serializable]
-    public class Cost : IComparable<Cost>
-    {
-		private string regexPattern = @"^(0|[0-9]*[WUBRG]*)$";
-
-        private string cost;
-        private int cnc;
-
-        [XmlAttribute(AttributeName = "CostString")]
-        public string CostString
-        {
-            get { return cost; }
-            set { cost = value; }
-        }
-
-		public Cost () { }
-
-        public Cost(string cost)
-        {
-            SetCost(cost);
-        }
-
-        public int ConvertedCost
-        {
-            get { return cnc; }
-        }
-
-        public string ManaCost
-        {
-            get { return cost; }
-        }
-		
-		public bool TrySetCost(string cost)
-		{
-			Regex matcher = new Regex(regexPattern);
-            if (!matcher.IsMatch(cost.ToUpper()))
-                return false;
-
-            this.cost = cost.ToUpper();
-
-            int cnc = 0;
-            string genericCost = "";
-            bool parsingGeneric = true;
-            for (int i = 0; i < cost.Length; i++)
-            {
-                int digit;
-                if (parsingGeneric && int.TryParse(new string(new char[] { cost[i] }), out digit))
-                {
-                    genericCost += digit;
-                }
-                else
-                {
-                    if (genericCost != "")
-                    {
-                        parsingGeneric = false;
-                        cnc += int.Parse(genericCost);
-                        genericCost = "";
-                    }
-
-                    cnc++;
-                }
-            }
-
-            this.cnc = cnc;
-			
-			return true;
-		}
-
-        public void SetCost(string cost)
-        {
-			Regex matcher = new Regex(regexPattern);
-            if (!matcher.IsMatch(cost.ToUpper()))
-                throw new ArgumentException("Cost {0} is not in a valid format.",cost);
-			
-            TrySetCost(cost);
-        }
-		
-		public static CardColors ParseColors(string cost)
-		{
-			CardColors colors = CardColors.Colorless;
-			if(cost.Contains("W")) colors |= CardColors.W;
-			if(cost.Contains("U")) colors |= CardColors.U;
-			if(cost.Contains("B")) colors |= CardColors.B;
-			if(cost.Contains("R")) colors |= CardColors.R;
-			if(cost.Contains("G")) colors |= CardColors.G;
-			
-			return colors;
-		}
-		public CardColors ParseColors()
-		{
-			return ParseColors(this.cost);
-		}
-		
-
-        public override string ToString()
-        {
-            return cost;
-        }
-
-        public int CompareTo(Cost other)
-        {
-            if (this.cnc < other.cnc) return -1;
-            if (this.cnc > other.cnc) return 1;
-
-            return 0;
-        }
-    }
-
-	/// <summary>
-	/// Represents a physical Magic: The Gathering card.
+	/// Represents a basic Magic: The Gathering card.
 	/// </summary>
     [Serializable]
     public class Card
     {
-		private Cost cost;
+		private Cost _cost;
 		
 		[XmlAttribute]
         public string Name { get; set; }
@@ -182,28 +69,22 @@ namespace Folio
         
 		[XmlAttribute]
 		public CardTypes Type { get; set; }
-		
-		[XmlElement]
-        public string Set { get; set; }
-
-        [XmlElement]
-		public Condition? Condition { get; set; }
-		
+			
         [XmlElement]
 		public Cost Cost
 		{ 
-            get { return cost;}
-            set { cost = value; }
+            get { return _cost;}
+            set { _cost = value; }
         }
 		
 		public Card ()
 		{
-			cost = new Cost();
+			_cost = new Cost();
 		}
 		
 		public void SetCostAndColor(Cost cost)
 		{
-			this.cost = cost;
+			this._cost = cost;
 			Color = cost.ParseColors();
 		}
 		
@@ -248,7 +129,7 @@ namespace Folio
         public bool TrySetCostAndColor(string cost)
         {
             this.Color = Cost.ParseColors(cost);
-            return this.cost.TrySetCost(cost);
+            return this._cost.TrySetCost(cost);
         }
 
         public void SetColor(string cost)
@@ -260,5 +141,49 @@ namespace Folio
 		{
             return "Card: " + Name;
 		}
+    }
+
+    /// <summary>
+    /// Represents a (non-physical) card ruling
+    /// Contains each line of oracle text in a List<string>
+    /// </summary>
+    public class CardRuling : Card
+    {
+        [XmlArrayItem("RulesLine")]
+        public List<string> RulesText { get; set; }
+
+        public CardRuling()
+        {
+            RulesText = new List<string>();
+        }
+    }
+
+    /// <summary>
+    /// Represents a set physical cards in a collection.
+    /// The cards have the same set, condition, etc
+    /// </summary>
+    public class CardCollectionCard : Card
+    {
+        [XmlElement]
+        public int Quantity { get; set; }
+
+        [XmlElement]
+        public string Set { get; set; }
+
+        [XmlElement]
+        public Condition Condition { get; set; }
+
+        [XmlElement]
+        public string Notes { get; set; }
+
+        public static explicit operator CardCollectionCard(CardRuling cr)
+        {
+            CardCollectionCard ccc = new CardCollectionCard() { Quantity = 1, Condition=Condition.NM };
+            ccc.Name = cr.Name;
+            ccc.Cost = cr.Cost;
+            ccc.Color = cr.Color;
+            ccc.Type = cr.Type;
+            return ccc;
+        }
     }
 }
