@@ -47,6 +47,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Card.cs" />
+    <Compile Include="CardCollectionBindingList.cs" />
     <Compile Include="HTML\AttributeList.cs" />
     <Compile Include="HTML\Attributes.cs" />
     <Compile Include="Filter.cs" />

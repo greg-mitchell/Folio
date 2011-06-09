@@ -59,14 +59,72 @@ namespace Folio
 
         private void InitializeDataGridView()
         {
+
+            string displayColumnsSetting = Properties.Settings.Default.DisplayColumns;
+            if (!String.IsNullOrEmpty(displayColumnsSetting))
+            {
+                string[] displayColumnTitles = displayColumnsSetting.Split(new char[] { ',' });
+                if (displayColumnTitles != null)
+                {
+                    dataGridView1.AutoGenerateColumns = false;
+                    dataGridView1.Columns.Clear();
+                    foreach (string title in displayColumnTitles)
+                    {
+                        DataGridViewTextBoxColumn column = new DataGridViewTextBoxColumn();
+                        column.HeaderText = title;
+                        column.DataPropertyName = title;
+                        dataGridView1.Columns.Add(column);
+                    }
+                }
+            }
+            else
+            {
+                dataGridView1.AutoGenerateColumns = false;
+                dataGridView1.Columns.Clear();
+
+
+                //string[] columns = new string[] { "Name", "Cost", "Color", "Type", "Set", "Condition" };
+                //dataGridView1.Columns.Add(new DataGridViewColumn() { HeaderText = "Name", DataPropertyName = "Name", ValueType=typeof(String) });
+                //dataGridView1.Columns.Add(new DataGridViewColumn() { HeaderText = "Cost", DataPropertyName = "Cost" , ValueType=typeof(Cost)});
+                //dataGridView1.Columns.Add(new DataGridViewColumn() { HeaderText = "Color", DataPropertyName = "Color", ValueType=typeof(CardColors)});
+                //dataGridView1.Columns.Add(new DataGridViewColumn() { HeaderText = "Type", DataPropertyName = "Type", ValueType=typeof(CardTypes)});
+                //dataGridView1.Columns.Add(new DataGridViewColumn() { HeaderText = "Set", DataPropertyName = "Set", ValueType=typeof(String) }); 
+                //dataGridView1.Columns.Add(new DataGridViewColumn() { HeaderText = "Condition", DataPropertyName = "Condition", ValueType=typeof(Condition) });
+
+                string[] columns = new string[] { "Name", "Cost", "Color", "Type", "Set", "Condition" };
+                Properties.Settings.Default.DisplayColumns = "Name,Cost,Color,Type,Set,Condition";
+
+                DataGridViewCell cellTemplate = new DataGridViewTextBoxCell();
+
+                dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "Name", DataPropertyName = "Name" , SortMode=DataGridViewColumnSortMode.Programmatic});
+                dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "Cost", DataPropertyName = "Cost" , SortMode = DataGridViewColumnSortMode.Programmatic });
+                dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "Color", DataPropertyName = "Color", SortMode = DataGridViewColumnSortMode.Programmatic });
+                dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "Type", DataPropertyName = "Type" , SortMode=DataGridViewColumnSortMode.Programmatic });
+                dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "Set", DataPropertyName = "Set", SortMode = DataGridViewColumnSortMode.Programmatic });
+
+                DataGridViewComboBoxColumn comboBoxCol = new DataGridViewComboBoxColumn() { HeaderText = "Condition", DataPropertyName = "Condition" };
+                Array vals = Enum.GetValues(typeof(Condition));
+                for(int i=1;i<vals.Length;i++) comboBoxCol.Items.Add(vals.GetValue(i));
+                dataGridView1.Columns.Add(comboBoxCol);
+
+            }
             columnsContextMenu.Items.Clear();
             // parse settings for columns
-            string displayColumnsSetting = Properties.Settings.Default.DisplayColumns;
             
         }
 
         void dataGridView1_MouseUp(object sender, MouseEventArgs e)
         {
+            if (e.Button == System.Windows.Forms.MouseButtons.Left)
+            {
+                DataGridView.HitTestInfo hitTest = dataGridView1.HitTest(e.X, e.Y);
+                if (hitTest.Type == DataGridViewHitTestType.ColumnHeader)
+                {
+                    DataGridViewColumn hitCol = dataGridView1.Columns[hitTest.ColumnIndex];
+                    //dataGridView1.Sort(hitCol, (sortedAscending ? ListSortDirection.Ascending : ListSortDirection.Descending));
+                    SortColumn(hitCol);
+                }
+            }
 
             if (e.Button == System.Windows.Forms.MouseButtons.Right)
             {
@@ -79,6 +137,48 @@ namespace Folio
                 {
                     cellsContextMenu.Show(dataGridView1, new Point(e.X, e.Y));
                 }
+            }
+        }
+
+        private void SortColumn(DataGridViewColumn columnToSort)
+        {
+            DataGridViewColumn oldColumn = dataGridView1.SortedColumn;
+            ListSortDirection direction;
+
+            // If oldColumn is null, then the DataGridView is not currently sorted.
+            if (oldColumn != null)
+            {
+                // Sort the same column again, reversing the SortOrder.
+                if (oldColumn == columnToSort &&
+                    dataGridView1.SortOrder == SortOrder.Ascending)
+                {
+                    direction = ListSortDirection.Descending;
+                }
+                else
+                {
+                    // Sort a new column and remove the old SortGlyph.
+                    direction = ListSortDirection.Ascending;
+                    oldColumn.HeaderCell.SortGlyphDirection = SortOrder.None;
+                }
+            }
+            else
+            {
+                direction = ListSortDirection.Ascending;
+            }
+
+            // If no column has been selected, display an error dialog  box.
+            if (columnToSort == null)
+            {
+                MessageBox.Show("Select a single column and try again.",
+                    "Error: Invalid Selection", MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+            else
+            {
+                dataGridView1.Sort(columnToSort, direction);
+                columnToSort.HeaderCell.SortGlyphDirection =
+                    direction == ListSortDirection.Ascending ?
+                    SortOrder.Ascending : SortOrder.Descending;
             }
         }
 
