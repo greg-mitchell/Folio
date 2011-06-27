@@ -35,7 +35,6 @@ namespace Folio
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             this.AddButton = new System.Windows.Forms.Button();
             this.DeleteButton = new System.Windows.Forms.Button();
-            this.dataGridView1 = new System.Windows.Forms.DataGridView();
             this.tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
             this.checkBoxMulticolored = new System.Windows.Forms.CheckBox();
             this.checkBoxColorless = new System.Windows.Forms.CheckBox();
@@ -69,12 +68,13 @@ namespace Folio
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
             this.columnsContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.cellsContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.dataGridView1 = new Folio.DataGridViewPlus();
             this.tableLayoutPanel1.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             this.tableLayoutPanel2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxCard)).BeginInit();
             this.menuStrip1.SuspendLayout();
             this.statusStrip1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             this.SuspendLayout();
             // 
             // tableLayoutPanel1
@@ -98,13 +98,13 @@ namespace Folio
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 37F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 37F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(1022, 476);
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(1057, 476);
             this.tableLayoutPanel1.TabIndex = 0;
             // 
             // AddButton
             // 
             this.AddButton.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.AddButton.Location = new System.Drawing.Point(573, 14);
+            this.AddButton.Location = new System.Drawing.Point(608, 14);
             this.AddButton.Margin = new System.Windows.Forms.Padding(4);
             this.AddButton.Name = "AddButton";
             this.AddButton.Size = new System.Drawing.Size(125, 29);
@@ -116,36 +116,13 @@ namespace Folio
             // DeleteButton
             // 
             this.DeleteButton.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.DeleteButton.Location = new System.Drawing.Point(573, 51);
+            this.DeleteButton.Location = new System.Drawing.Point(608, 51);
             this.DeleteButton.Margin = new System.Windows.Forms.Padding(4);
             this.DeleteButton.Name = "DeleteButton";
             this.DeleteButton.Size = new System.Drawing.Size(125, 29);
             this.DeleteButton.TabIndex = 2;
             this.DeleteButton.Text = "Delete";
             this.DeleteButton.UseVisualStyleBackColor = true;
-            // 
-            // dataGridView1
-            // 
-            this.dataGridView1.AllowUserToAddRows = false;
-            dataGridViewCellStyle1.BackColor = System.Drawing.Color.WhiteSmoke;
-            this.dataGridView1.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle1;
-            this.dataGridView1.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.DisplayedCells;
-            this.dataGridView1.BackgroundColor = System.Drawing.Color.White;
-            this.dataGridView1.ColumnHeadersBorderStyle = System.Windows.Forms.DataGridViewHeaderBorderStyle.None;
-            this.dataGridView1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dataGridView1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.dataGridView1.Location = new System.Drawing.Point(4, 51);
-            this.dataGridView1.Margin = new System.Windows.Forms.Padding(4);
-            this.dataGridView1.Name = "dataGridView1";
-            this.dataGridView1.RowHeadersVisible = false;
-            this.tableLayoutPanel1.SetRowSpan(this.dataGridView1, 2);
-            this.dataGridView1.RowTemplate.Height = 24;
-            this.dataGridView1.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-            this.dataGridView1.Size = new System.Drawing.Size(561, 389);
-            this.dataGridView1.TabIndex = 3;
-            this.dataGridView1.DataError += new System.Windows.Forms.DataGridViewDataErrorEventHandler(this.dataGridView1_DataError);
-            this.dataGridView1.RowEnter += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView1_RowEnter);
-            this.dataGridView1.SelectionChanged += new System.EventHandler(this.dataGridView1_SelectionChanged);
             // 
             // tableLayoutPanel2
             // 
@@ -160,7 +137,7 @@ namespace Folio
             this.tableLayoutPanel2.Controls.Add(this.checkBoxW, 0, 1);
             this.tableLayoutPanel2.Controls.Add(this.checkBoxR, 0, 4);
             this.tableLayoutPanel2.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tableLayoutPanel2.Location = new System.Drawing.Point(573, 88);
+            this.tableLayoutPanel2.Location = new System.Drawing.Point(608, 88);
             this.tableLayoutPanel2.Margin = new System.Windows.Forms.Padding(4);
             this.tableLayoutPanel2.Name = "tableLayoutPanel2";
             this.tableLayoutPanel2.Padding = new System.Windows.Forms.Padding(11, 0, 0, 0);
@@ -270,7 +247,7 @@ namespace Folio
             // 
             this.pictureBoxCard.BorderStyle = System.Windows.Forms.BorderStyle.Fixed3D;
             this.pictureBoxCard.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pictureBoxCard.Location = new System.Drawing.Point(706, 14);
+            this.pictureBoxCard.Location = new System.Drawing.Point(741, 14);
             this.pictureBoxCard.Margin = new System.Windows.Forms.Padding(4);
             this.pictureBoxCard.MaximumSize = new System.Drawing.Size(312, 445);
             this.pictureBoxCard.MinimumSize = new System.Drawing.Size(78, 111);
@@ -287,7 +264,7 @@ namespace Folio
             this.comboBox1.FormattingEnabled = true;
             this.comboBox1.Location = new System.Drawing.Point(3, 13);
             this.comboBox1.Name = "comboBox1";
-            this.comboBox1.Size = new System.Drawing.Size(563, 24);
+            this.comboBox1.Size = new System.Drawing.Size(598, 24);
             this.comboBox1.TabIndex = 6;
             this.comboBox1.KeyDown += new System.Windows.Forms.KeyEventHandler(this.comboBox1_KeyDown);
             // 
@@ -301,7 +278,7 @@ namespace Folio
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
             this.menuStrip1.Padding = new System.Windows.Forms.Padding(8, 2, 0, 2);
-            this.menuStrip1.Size = new System.Drawing.Size(1022, 28);
+            this.menuStrip1.Size = new System.Drawing.Size(1057, 28);
             this.menuStrip1.TabIndex = 1;
             this.menuStrip1.Text = "menuStrip1";
             // 
@@ -421,7 +398,7 @@ namespace Folio
             this.statusStrip1.Location = new System.Drawing.Point(0, 480);
             this.statusStrip1.Name = "statusStrip1";
             this.statusStrip1.Padding = new System.Windows.Forms.Padding(1, 0, 19, 0);
-            this.statusStrip1.Size = new System.Drawing.Size(1022, 24);
+            this.statusStrip1.Size = new System.Drawing.Size(1057, 24);
             this.statusStrip1.TabIndex = 2;
             this.statusStrip1.Text = "statusStrip1";
             // 
@@ -446,11 +423,37 @@ namespace Folio
             this.cellsContextMenu.Name = "cellsContextMenu";
             this.cellsContextMenu.Size = new System.Drawing.Size(61, 4);
             // 
+            // dataGridView1
+            // 
+            this.dataGridView1.AllowUserToAddRows = false;
+            this.dataGridView1.AllowUserToOrderColumns = true;
+            this.dataGridView1.AllowUserToResizeRows = false;
+            dataGridViewCellStyle1.BackColor = System.Drawing.Color.WhiteSmoke;
+            this.dataGridView1.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle1;
+            this.dataGridView1.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.DisplayedCells;
+            this.dataGridView1.BackgroundColor = System.Drawing.Color.White;
+            this.dataGridView1.ColumnHeadersBorderStyle = System.Windows.Forms.DataGridViewHeaderBorderStyle.None;
+            this.dataGridView1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dataGridView1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.dataGridView1.EnableDragDrop = true;
+            this.dataGridView1.Location = new System.Drawing.Point(4, 51);
+            this.dataGridView1.Margin = new System.Windows.Forms.Padding(4);
+            this.dataGridView1.Name = "dataGridView1";
+            this.dataGridView1.RowHeadersBorderStyle = System.Windows.Forms.DataGridViewHeaderBorderStyle.None;
+            this.tableLayoutPanel1.SetRowSpan(this.dataGridView1, 2);
+            this.dataGridView1.RowTemplate.Height = 24;
+            this.dataGridView1.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
+            this.dataGridView1.Size = new System.Drawing.Size(596, 389);
+            this.dataGridView1.TabIndex = 3;
+            this.dataGridView1.DataError += new System.Windows.Forms.DataGridViewDataErrorEventHandler(this.dataGridView1_DataError);
+            this.dataGridView1.RowEnter += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView1_RowEnter);
+            this.dataGridView1.SelectionChanged += new System.EventHandler(this.dataGridView1_SelectionChanged);
+            // 
             // MainView
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1022, 504);
+            this.ClientSize = new System.Drawing.Size(1057, 504);
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.tableLayoutPanel1);
             this.Controls.Add(this.menuStrip1);
@@ -462,7 +465,6 @@ namespace Folio
             this.Text = "Folio";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainView_FormClosing);
             this.tableLayoutPanel1.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
             this.tableLayoutPanel2.ResumeLayout(false);
             this.tableLayoutPanel2.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBoxCard)).EndInit();
@@ -470,6 +472,7 @@ namespace Folio
             this.menuStrip1.PerformLayout();
             this.statusStrip1.ResumeLayout(false);
             this.statusStrip1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -480,7 +483,7 @@ namespace Folio
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
         private System.Windows.Forms.Button AddButton;
         private System.Windows.Forms.Button DeleteButton;
-        private System.Windows.Forms.DataGridView dataGridView1;
+        private DataGridViewPlus dataGridView1;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel2;
         private System.Windows.Forms.CheckBox checkBoxMulticolored;
         private System.Windows.Forms.CheckBox checkBoxColorless;

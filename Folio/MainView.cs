@@ -57,6 +57,7 @@ namespace Folio
             dataGridView1.CellValueChanged += new DataGridViewCellEventHandler(dataGridView1_CellValueChanged);
             dataGridView1.RowsAdded += new DataGridViewRowsAddedEventHandler(dataGridView1_RowsAdded);
             dataGridView1.DataError +=new DataGridViewDataErrorEventHandler(dataGridView1_DataError);
+            dataGridView1.EnableHeadersVisualStyles = true;
             InitializeDataGridView();
 			
 			checkBoxW.CheckedChanged += new EventHandler(FilterCheckbox_CheckedChanged);
@@ -113,11 +114,11 @@ namespace Folio
 
                 DataGridViewCell cellTemplate = new DataGridViewTextBoxCell();
 
-                dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "#", DataPropertyName = "Quantity", SortMode = DataGridViewColumnSortMode.Programmatic });
-                dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "Name", DataPropertyName = "Name", SortMode = DataGridViewColumnSortMode.Programmatic });
-                dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "Cost", DataPropertyName = "Cost" , SortMode = DataGridViewColumnSortMode.Programmatic });
-                dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "Color", DataPropertyName = "Color", SortMode = DataGridViewColumnSortMode.Programmatic });
-                dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "Type", DataPropertyName = "Type" , SortMode=DataGridViewColumnSortMode.Programmatic });
+                dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "Quant", DataPropertyName = "Quantity", SortMode = DataGridViewColumnSortMode.Programmatic });
+                dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "Name", DataPropertyName = "Name", SortMode = DataGridViewColumnSortMode.Programmatic , ReadOnly = true});
+                dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "Cost", DataPropertyName = "Cost" , SortMode = DataGridViewColumnSortMode.Programmatic , ReadOnly=true});
+                dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "Color", DataPropertyName = "Color", SortMode = DataGridViewColumnSortMode.Programmatic, ReadOnly=true});
+                dataGridView1.Columns.Add(new DataGridViewColumn(cellTemplate) { HeaderText = "Type", DataPropertyName = "Type" , SortMode=DataGridViewColumnSortMode.Programmatic, ReadOnly=true});
                                 
                 DataGridViewComboBoxColumn comboBoxCol = new DataGridViewComboBoxColumn() { HeaderText = "Condition", DataPropertyName = "Condition", SortMode=DataGridViewColumnSortMode.NotSortable };
                 Array vals = Enum.GetValues(typeof(Condition));
@@ -179,6 +180,7 @@ namespace Folio
                 {
                     DataGridViewColumn hitCol = dataGridView1.Columns[hitTest.ColumnIndex];
                     SortColumn(hitCol);
+                    sortedColumn = hitCol;
                 }
             }
 
@@ -277,11 +279,19 @@ namespace Folio
             {
                 sortedColumn = columnToSort;
                 sortDirection = (direction == ListSortDirection.Ascending) ? SortOrder.Ascending : SortOrder.Descending;
-                dataGridView1.Sort(columnToSort, direction);
+                dataGridView1.Sort(sortedColumn, direction);
                 columnToSort.HeaderCell.SortGlyphDirection =
                     direction == ListSortDirection.Ascending ?
                     SortOrder.Ascending : SortOrder.Descending;
             }
+        }
+
+        private void ResortDataGrid()
+        {
+            if (sortedColumn == null) return;
+
+            ListSortDirection direction = (sortDirection == SortOrder.Descending) ? ListSortDirection.Descending : ListSortDirection.Ascending;
+            dataGridView1.Sort(sortedColumn, direction);
         }
         #endregion
 
@@ -323,6 +333,7 @@ namespace Folio
                 }
 
                 Rulings.GetCardRulings(new Filter() { CardName = comboBox1.Text }, AddCard_Completed);
+
             }
         }
 
@@ -451,7 +462,12 @@ namespace Folio
         {
             IEnumerable<CardRuling> matches = (IEnumerable<CardRuling>)e.Result;
             if (matches != null && matches.Count() > 0)
+            {
                 viewCardList.Add((CardCollectionCard)matches.First());
+            }
+
+            comboBox1.SelectAll();
+            ResortDataGrid();
         }
         #endregion
 

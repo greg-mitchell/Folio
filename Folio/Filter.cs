@@ -184,7 +184,7 @@ namespace Folio
                 q += "+t:\"" + TypesToString(Types) + "\"";
 
             // set color
-            if(!(Colors == CardColors.Colorless) || Multicolor || Colorless)
+            if(!(Colors == null || Colors == CardColors.Colorless) || Multicolor || Colorless)
             {
                 q += "+c!";
                 q += ((Colorless) ? "c" : "");

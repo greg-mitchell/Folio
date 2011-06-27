@@ -120,7 +120,7 @@ namespace Folio
                     }
 
                     XmlSerializer ser = new XmlSerializer(cards.GetType());
-                    using (StreamWriter sw = new StreamWriter(RulingsCache.ToString(), false))
+                    using (StreamWriter sw = new StreamWriter(RulingsCache.AbsolutePath, false))
                     {
                         ser.Serialize(sw, cards);
                     }
